@@ -1,0 +1,108 @@
+All_stuffs_Examples
+===================
+--------------- 
+Installation 
+-------------- 
+
+1. sudo apt-get install python-pip 
+
+PIP--> Python package manager 
+
+2. sudo pip install Django 
+
+###or### 
+ 
+To install with specific version 
+
+$ sudo pip install Django==1.7 
+
+3. To check django working 
+
+$ django-admin.py 
+
+
+###########################
+
+Task .2 
+
+Execute the Django command through Jenkins
+
+1. pip install django
+
+### It works fine !!##
+
+2. sudo pip install django
+
+( If I try this command, will get an error like below : )
+
+Error : sudo: no tty present and no askpass program specified
+jenkins is not in the sudoers file.  This incident will be reported.
+
+***********
+
+Granting the user to use that command without prompting for password should resolve the problem. First open a shell console and type:
+
+$ sudo visudo
+
+(this is the command to access the /etc/sudoers file)
+Then edit that file to add to the very end:
+
+jenkins ALL=(ALL) NOPASSWD: ALL
+
+### It works fine with sudo ##
+
+
+
+***************
+Task .3 
+***************
+1. create django project
+
+a) To check the version of Django 
+
+$ python -c "import django; print(django.get_version())"
+
+b) From the command line, cd into a directory where you’d like to store your code, then run the following command:
+
+$ django-admin.py startproject project-name
+
+eg :
+ 
+$ django-admin.py startproject onecloud
+
+c) we need to create the tables in the database before we can use them. To do that, run the following command:
+
+$ python manage.py migrate
+
+#############
+If we do not use the above command, it throws an message like below :
+#############
+You have unapplied migrations; your app may not work properly until they are applied. 
+Run 'python manage.py migrate' to apply them. 
+
+d ) To verify your Django project works :
+
+$ python manage.py runserver
+
+The following output on the command line:
+
+  Performing system checks... 
+
+  System check identified no issues (0 silenced). 
+  October 07, 2014 - 11:34:38 
+  Django version 1.7, using settings 'onecloud.settings'  
+  Starting development server at http://127.0.0.1:8000/ 
+  Quit the server with CONTROL-C. 
+
+
+Now that the server’s running, visit http://127.0.0.1:8000/ with your Web browser. You’ll see a “Welcome to Django” page, in pleasant, light-blue pastel. It worked!
+
+e) To change port :
+
+
+If you want to change the server’s IP, pass it along with the port :
+
+$ python manage.py runserver 0.0.0.0:8000
+
+Now that the server’s running, visit http://0.0.0.0:8000/ with your Web browser.
+
