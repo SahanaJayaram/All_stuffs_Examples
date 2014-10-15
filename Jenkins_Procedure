@@ -1,0 +1,55 @@
+Task 1 : Download and installing Jenkins
+
+Step 1 :To run jenkins from the Command Line  we can run the following command:
+
+  java -jar jenkins.war
+
+
+Step 2 : Then  open up a browser and  type http://localhost:8080
+
+# Can able to see a link for “Manage Jenkins” (DASHBOARD Jenkins) that looks like:
+
+#In this list you should see a link called “Install as Windows Service”.  When you click this link you should go to a page that looks like:
+
+
+Step 3 : After installation will get the link:
+
+Step 4 : Insatallation of Git Plugins
+
+# After installation of Git Plugin : 
+
+
+Task 2  :  Setting up first build job in Jenkins
+
+Step 1 : In the left corner click a button called New Item, will Get a link as below :
+
+Then give Job Name and select build a free-style software project
+
+
+Step 2 :
+
+In this step we need to Tell Jenkins where it can find the source code for our project.
+
+we will be getting the source code from the GitHub repository we set up earlier.
+ 
+On the Jenkins screen, choose “Git” and enter the Repository URL as  :
+
+git@github.com:<username>/repository_name 
+
+Ex : https://github.com/SahanaJayaram/Programming_codes.git
+
+
+
+Step 3 : Then click “Add Build Step” from the “Build” section and then select “Execute Windows batch command” and then click on the Save button at the bottom of the screen.
+ 
+Step 4 : After creating a job, We should build our project
+
+Click a button called BUILD NOW 
+
+
+Step 4 : As I have given ls –l  command in the  execution command, the result is like : (Listing all the files in the given repository)
+
+Step 5 : We can able to check the status of our project in Console output 
+
+
+
