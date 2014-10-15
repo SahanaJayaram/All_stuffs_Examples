@@ -1,0 +1,230 @@
+Installation Steps:
+--==============---
+
+1. Install the CentOS 6.5 64Bit version.
+2. sudo yum update -y
+3. yum -y install openssh-server openssh-clients
+4. service sshd start
+5. chkconfig sshd on
+6. netstat -tulpn | grep :22
+7. service sshd restart
+8. wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+9. wget http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+10. sudo rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm
+11. sudo vim /etc/yum.repos.d/remi.repo
+
+edit the lines:
+---------------
+
+[remi]
+name=Les RPM de remi pour Enterprise Linux 6 - $basearch
+#baseurl=http://rpms.famillecollet.com/enterprise/6/remi/$basearch/
+mirrorlist=http://rpms.famillecollet.com/enterprise/6/remi/mirror
+
+enabled=1 <<<< change from 0 to 1
+
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-remi
+
+failovermethod=priority <<<< new line added
+
+--------------------------------------------------------------
+
+12. After install you must have two network interfaces:
+
+eth0: 172.168.122.72/24 (management interface) and should be static IP
+
+vim /etc/sysconfig/network-scripts/ifcfg-eth0
+
+DEVICE="eth0"
+BOOTPROTO="static"
+IPV6INIT="yes"
+IPV6_AUTOCONF="yes"
+IPADDR="192.168.122.74"
+NETMASK="255.255.255.0"
+GATEWAY="172.168.122.1"
+DNS="8.8.8.8"
+ONBOOT="yes"
+TYPE="Ethernet"
+
+and eth1, that we will plug into br-ex later, packstack all in one will setup 172.24.4.224/28 on br-ex (public interface)
+
+write a ifcfg-eth1 like this, it will bring up the interface, with no IP, it will also connect this interface to br-ex openvswitch bridge.
+
+vim /etc/sysconfig/network-scripts/ifcfg-eth1
+
+DEVICE=eth1
+TYPE=Ethernet
+ONBOOT=yes
+DEVICETYPE=ovs
+OVS_BRIDGE=br-ex
+TYPE=OVSPort
+
+--------------------------------------------------------------
+13. vim /etc/selinux/config 
+edit the line:
+---------------
+# This file controls the state of SELinux on the system.
+# SELINUX= can take one of these three values:
+#       enforcing - SELinux security policy is enforced.
+#       permissive - SELinux prints warnings instead of enforcing.
+#       disabled - SELinux is fully disabled.
+
+SELINUX=disabled <<<<(change from enforcing/permissive to disabled)
+
+# SELINUXTYPE= type of policy in use. Possible values are:
+#       targeted - Only targeted network daemons are protected.
+#       strict - Full SELinux protection.
+SELINUXTYPE=targeted 
+
+14. reboot (After rebooting the system, you got static IP on your eth0 interface. check ifconfig)
+15. sudo yum update -y
+16. sudo yum install -y https://rdo.fedorapeople.org/rdo-release.rpm
+17. sudo yum install -y openstack-packstack
+18. sudo yum install iproute
+19. ip netns
+20. cd /root/
+21. packstack --gen-answer-file packstack_customanswerfile.txt
+22. vim packstack_customanswerfile.txt 
+(Modify your custom settings like IP,Mysql db, keystone and neutron passwords on the answer file)
+23. packstack --answer-file=packstack_customanswerfile.txt 
+24. ovs-vsctl add-port br-ex eth1 
+
+25. Running an Instance through Dashboard:
+========================
+Step 1: Visit the Dashboard
+
+Log in to the Openstack dashboard at http://CONTROL_NODE[Your IP]/dashboard - the username is "demo". The password can be found in the file keystonerc_demo in the /root/ directory of the control node.
+
+Note: make sure you use the "demo" username here. 
+
+Step 2: Launch two VM instances
+
+from here http://192.168.122.74/dashboard/project/instances/ you will be able to create a new instance: create a cirros instance using "Launch Instance" button
+
+First Instance:
+---------------
+
+source: Image
+image: cirros
+instance name: Instance1
+flavor: m1.tiny
+count: 1
+
+Access & security: 
+    you can add a keypair, for example your ~/.ssh/id_rsa.pub or any other..
+    or you can set an admin pass
+
+Networking:
+   *drag and drop the private networking into  the selected network,
+
+
+Click on "Launch"
+
+Second Instance:
+----------------
+
+source: Image
+image: cirros
+instance name: Instance2
+flavor: m1.tiny
+count: 1
+
+Access & security: 
+    you can add a keypair, for example your ~/.ssh/id_rsa.pub or any other..
+    or you can set an admin pass
+
+Networking:
+   *drag and drop the private networking into  the selected network,
+
+
+Click on "Launch"
+
+Step 2: Enjoy watching your new network topology
+
+http://192.168.122.74/dashboard/project/network_topology/
+
+Step 3: Log into your first instance
+
+Go into the first instance, open the console, and login with "cirros" / "cubswin:)"
+
+ping 10.0.0.4
+
+it should work..., your instance is connected to the other on your private_subnet
+
+STEP 4: Add a floating IP and setup external conectivity
+
+Go to your instances again:
+
+http://192.168.122.74/dashboard/project/instances/
+
+Add a floating IP to the second instance:
+
+Just click on the right "More v" -> Associate Floating IP
+
+It will say "No IP Address available", click on the "+" to reserve some for your project,
+then select it: ( 172.24.4.227 on my system)  on the port, select the "cirros2", which is 
+your second instance on 10.0.0.4
+
+Click "Associate"
+
+Step 5: Setup your management machine to access the VMs
+
+My management machine, has connection to the external addresses on the second interface, that in fact, for my, it goes into the same physical L2 network (as they do on my test openstack machine).
+
+So I setup a second ip on my management machine (your desktop PC) , assuming linux, use the last IP on the range for 172.24.4.224/28 :
+
+sudo ifconfig eth0:1 172.24.4.238 netmask 255.255.255.240  
+
+Step 6: Setup security groups to let you ping & SSH
+
+before trying to ping it, or connecting into it, go to your security groups:
+
+http://192.168.122.74/dashboard/project/access_and_security/ and edit the default rules:
+
+Add rules to open ICMP and SSH:
+
+    Add rule:
+
+      rule: Custom ICMP Rule
+      direction: ingress
+      type: 8  (ICMP echo request)
+      code: -1 (= ignore)
+      remote: CIDR
+      CIDR: keep 0.0.0.0/0 to accept from any source, or 172.24.4.238/32 to accept pings only from your PC
+
+    Add rule
+
+    rule: Custom TCP Rule direction: ingress open port: port (only one) port: 22 (ssh) remote: CIDR CIDR: same as the previous rule
+
+Step 7: Test conectivity from your PC
+
+ping 174.24.4.227 
+
+it can need a few seconds until the new iptables rules are installed by neutron and the ping starts working.
+(Make sure your Instance is running)
+
+try to ssh from your pc:
+
+slogin cirros@172.24.4.227   
+
+password: "cubswin:)" or the one you set, or nothing (if you added a PK)
+
+
+Thats it. you are done.. :)
+
+Reference links:
+----------------
+
+1. packstack allinone install with neutron and external connectivity
+https://openstack.redhat.com/forum/discussion/577/howto-packstack-allinone-install-with-neutron-and-external-connectivity/p1
+
+2. Neutron with existing external network:
+https://openstack.redhat.com/Neutron_with_existing_external_network
+
+3. Openstack Havana + neutron setup on RHEL6.4 || CentOS + troubleshooting:
+https://openstack.redhat.com/forum/discussion/533/openstack-havana-neutron-setup-on-rhel6-4-centos-troubleshooting/p1
+
+4. External gateway setting in Havana with Neutron
+https://openstack.redhat.com/forum/discussion/678/external-gateway-setting-in-havana-with-neutron/p1
+
