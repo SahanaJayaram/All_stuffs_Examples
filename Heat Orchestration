@@ -1,0 +1,122 @@
+To install and configure the Orchestration module (heat) on the controller node.
+
+ To configure prerequisites:
+Before you install and configure Orchestration, you must create a database and Identity service credentials including endpoints.
+
+Step 1: a. Connect to the database server as the root user:
+
+	$ mysql -u root -p
+	
+        b. Create the heat database:
+        
+	mysql> CREATE DATABASE heat;
+	
+        c. Grant the proper access to the database:
+        
+        mysql> GRANT ALL PRIVILEGES ON heat.* TO 'heat'@'localhost' IDENTIFIED BY 'HEAT_DBPASS';
+        mysql> GRANT ALL PRIVILEGES ON heat.* TO 'heat'@'%' IDENTIFIED BY 'HEAT_DBPASS';
+        mysql> exit	
+  
+  Note: Replace HEAT_DBPASS with a suitable password.
+
+Step 2: Create Identity service credentials:
+
+a. Create the heat user:
+
+$ keystone user-create --name heat --pass HEAT_PASS --email EMAIL_ADDRESS
+
+Note: Replace HEAT_PASS with a suitable password and EMAIL_ADDRESS with a suitable e-mail address.
+
+b. Link the heat user to the service tenant and admin role:
+
+$ keystone user-role-add --user heat --tenant service --role admin
+
+c. Create the heat and heat-cfn services:
+
+   $ keystone service-create --name heat --type orchestration \
+     --description "Orchestration"
+
+   $ keystone service-create --name heat-cfn --type cloudformation \
+	      --description "Orchestration CloudFormation"
+
+        d. Create the heat_stack_user and heat_stack_owner roles:
+        By default, users created by Orchestration use the role heat_stack_user.
+        
+        $ keystone role-create --name heat_stack_user
+        $ keystone role-create --name heat_stack_owner
+
+Step 3: Create the Identity service endpoints:
+	
+	$ keystone endpoint-create \
+   --service-id $(keystone service-list | awk '/ orchestration /                 {print$2}') \
+   --publicurl http://controller:8004/v1/%\(tenant_id\)s \
+   --internalurl http://controller:8004/v1/%\(tenant_id\)s \
+   --adminurl http://controller:8004/v1/%\(tenant_id\)s
+
+        $ keystone endpoint-create \
+   --service-id $(keystone service-list | awk '/ cloudformation / {print$2}') \
+   --publicurl http://controller:8000/v1 \
+   --internalurl http://controller:8000/v1 \
+--adminurl http://controller:8000/v1
+
+To install and configure the Orchestration components
+
+Step 1: Run the following commands to install the packages:
+
+# yum install openstack-heat-api openstack-heat-engine openstack-heat   api-cfn
+
+Step 2: Edit the /etc/heat/heat.conf file.
+
+a. In the [database] section, configure database access:
+[database]
+...
+connection = mysql://heat:HEAT_DBPASS@controller/heat
+		
+Note: Replace HEAT_DBPASS with the password you chose for the Orchestration database.
+
+b. In the [DEFAULT] section, configure RabbitMQ message broker access:
+
+[DEFAULT]
+...
+rpc_backend = heat.openstack.common.rpc.impl_kombu
+rabbit_host = controller
+rabbit_password = RABBIT_PASS
+
+Note: Replace RABBIT_PASS with the password you chose for the guest account       in RabbitMQ.
+	
+c. In the [keystone_authtoken] and [ec2authtoken] sections, configure Identity     service access:
+
+[keystone_authtoken]
+...
+auth_uri = http://controller:5000/v2.0
+identity_uri = http://controller:35357
+admin_tenant_name = service
+admin_user = heat
+admin_password = HEAT_PASS
+[ec2authtoken]
+...
+auth_uri = http://controller:5000/v2.0
+
+Note : 1.Replace HEAT_PASS with the password you chose for the heat user in the   Identity service.
+2. Comment out any auth_host, auth_port, and auth_protocol options because the identity_uri option replaces them.
+
+d. In the [DEFAULT] section, configure the metadata and wait condition URLs:
+
+[DEFAULT]
+...
+heat_metadata_server_url = http://controller:8000
+heat_waitcondition_server_url = http://controller:8000/v1/waitcondition
+
+Step 3: Run the following command to populate the Orchestration database:
+
+	# su -s /bin/sh -c "heat-manage db_sync" heat
+
+To finalize installation:
+Start the Orchestration services and configure them to start when the system boots:
+
+# service openstack-heat-api start
+# service openstack-heat-api-cfn start
+# service openstack-heat-engine start
+# chkconfig openstack-heat-api on
+# chkconfig openstack-heat-api-cfn on
+# chkconfig openstack-heat-engine on
