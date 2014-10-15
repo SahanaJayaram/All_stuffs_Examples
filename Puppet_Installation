@@ -1,0 +1,107 @@
+1. Installation of puppet:
+
+	$ wget https://apt.puppetlabs.com/puppetlabs-release-precise.deb
+	$ sudo dpkg -i puppetlabs-release-precise.deb
+	$ sudo apt-get update
+	$ sudo apt-get install puppet
+
+
+2. Installation of apache :
+
+package {
+    'apache2':
+        ensure => “installed”
+}
+
+service {'apache2':
+                ensure => "running",
+                enable => "true",
+                require => Package["apache2"],
+        }
+
+
+3. Installing packages :
+
+package {
+	“screen”:
+	    ensure => “present”
+}
+ 
+4. Installing multiple packages :
+
+	a. package { “screen”:
+		ensure => “installed”
+		}
+	  package { “sudo” :
+		ensure => “present”
+
+		}
+
+[or] 	By using global package parameter
+
+	b. Package { ensure => "installed" }
+
+	package { "screen": } 
+	package { "sudo":   }
+
+[or]
+ 
+c. you can specify the packages in an array ...
+
+	$ a1 = [ "screen", "sudo" ]
+	package { $a1: ensure => "installed" }
+
+5. Remove packages:
+
+	package { “screen”:
+	ensure => “absent”
+	}	
+
+[or]
+ 	#remove a package and purge its config files
+	
+	package { "screen":
+	    ensure => "purged"
+	}
+
+6. Create Directory :
+
+	file { "/home/onecloud/new_dir":
+	    ensure => "directory",
+	} 
+
+Notice: Compiled catalog for ubuntu.localdomain in environment production in 0.16 seconds
+Notice: /Stage[main]/Main/File[/home/praveen/new_puppet]/ensure: created
+Notice: Finished catalog run in 0.10 seconds
+
+[or]
+
+	file { "/home/praveen/new_puppet":
+   	 ensure => "directory",
+	owner  => "root",
+    	group  => "sudo",
+    	mode   => 777,
+	}
+
+Notice: Compiled catalog for ubuntu.localdomain in environment production in 0.16 seconds
+Notice: /Stage[main]/Main/File[/home/praveen/new_puppet/new_file/]/ensure: created
+Notice: Finished catalog run in 0.10 seconds
+
+7. To Ensure service is running
+
+service { "apache2":
+	ensure => "running"
+}
+
+
+8.To Ensure service is stopped
+
+ service { "apache2":
+	ensure => "running"
+	}
+
+Notice: Compiled catalog for ubuntu.localdomain in environment production in 0.13 seconds
+Notice: /Stage[main]/Main/Service[apache2]/ensure: ensure changed 'running' to 'stopped'
+Notice: Finished catalog run in 0.72 seconds
+
+
